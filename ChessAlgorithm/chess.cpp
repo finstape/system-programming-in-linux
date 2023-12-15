@@ -47,7 +47,7 @@ void show_board(const vector<vector<string>> &board) {
     cout << "=================================" << endl;
 }
 
-vector<vector<string>> rotate_180(const vector<vector<string>> &board) {
+vector<vector<string>> rotate_board(const vector<vector<string>> &board) {
     vector<vector<string>> reversed_board(8, vector<string>(8));
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -65,7 +65,7 @@ bool is_in_border(int coord) {
     return 0 <= coord && coord <= 7;
 }
 
-vector<vector<int>> get_possible_moves(const vector<vector<string>> &board, int x, int y) {
+vector<vector<int>> make_moves(const vector<vector<string>> &board, int x, int y) {
     vector<vector<int>> possible_moves;
     auto add_move = [&](int move_x, int move_y) {
         if (is_in_border(x + move_x) && is_in_border(y + move_y)) {
@@ -130,16 +130,16 @@ vector<vector<string>> generate_moves(vector<vector<string>> board, int num_move
     for (int i = 0; i < num_moves; i++) {
         uniform_int_distribution<int> dist(0, 7);
         vector<int> cell = {dist(gen), dist(gen)};
-        while (get_possible_moves(board, cell[0], cell[1]).empty()) {
+        while (make_moves(board, cell[0], cell[1]).empty()) {
             cell = {dist(gen), dist(gen)};
         }
-        vector<vector<int>> possible_moves = get_possible_moves(board, cell[0], cell[1]);
+        vector<vector<int>> possible_moves = make_moves(board, cell[0], cell[1]);
         uniform_int_distribution<int> move_dist(0, possible_moves.size() - 1);
         vector<int> chosen_move = possible_moves[move_dist(gen)];
         board[chosen_move[0]][chosen_move[1]] = board[cell[0]][cell[1]];
         board[cell[0]][cell[1]] = "--";
     }
-    return rotate_180(board);
+    return rotate_board(board);
 }
 
 int main() {
@@ -148,8 +148,8 @@ int main() {
     for (int i = 0; i < 30; i++) {
         desk = generate_moves(desk, 1);
     }
-    
-    vector<vector<string>> rotated_desk = rotate_180(desk);
+
+    vector<vector<string>> rotated_desk = rotate_board(desk);
     show_board(rotated_desk);
     return 0;
 }
