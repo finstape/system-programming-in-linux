@@ -44,7 +44,7 @@ struct Board {
         BOARD = other.BOARD;
     }
 
-    Board& operator=(const Board &other) {
+    Board &operator=(const Board &other) {
         BOARD = other.BOARD;
         return *this;
     }
@@ -190,19 +190,36 @@ vector<vector<int>> make_moves(const Board &board, int x, int y) {
             for (int add_y = -1; add_y <= 1; add_y++) {
                 if (abs(add_x) + abs(add_y) > 0 && on_the_border(x + add_x) && on_the_border(y + add_y) &&
                     (board.BOARD[x + add_x][y + add_y][0] == '-' || board.BOARD[x + add_x][y + add_y][0] == 'e')) {
-                    possible_moves.push_back({x + add_x, y + add_y});
+
+                    bool valid_move = true;
+                    for (int i = 0; i < 8; i++) {
+                        for (int j = 0; j < 8; j++) {
+                            if (board.BOARD[i][j] == "eg") {
+                                if (abs(i - (x + add_x)) < 2 && abs(j - (y + add_y)) < 2) {
+                                    valid_move = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!valid_move) {
+                            break;
+                        }
+                    }
+
+                    if (valid_move) {
+                        possible_moves.push_back({x + add_x, y + add_y});
+                    }
                 }
             }
         }
     }
     vector<vector<int>> filtered_moves;
-    for (const auto &move : possible_moves) {
-        // Проверка наличия шаха после каждого потенциального хода
+    for (const auto &move: possible_moves) {
         Board temp_board = board;
         temp_board.BOARD[move[0]][move[1]] = temp_board.BOARD[x][y];
         temp_board.BOARD[x][y] = "--";
 
-        if (!is_check(temp_board, temp_board.BOARD[x][y][0])) {
+        if (!is_check(temp_board, temp_board.BOARD[move[0]][move[1]][0])) {
             filtered_moves.push_back(move);
         }
     }
@@ -245,12 +262,10 @@ bool is_check(const Board &board, char player) {
 
 bool is_checkmate(const Board &board) {
     int kingX = -1, kingY = -1;
-    string kingSymbol = "mg";  // Opponent's (black) king symbol
 
-    // Find the opponent's (black) king position
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
-            if (board.BOARD[i][j] == kingSymbol) {
+            if (board.BOARD[i][j] == "eg") {
                 kingX = i;
                 kingY = j;
                 break;
@@ -261,7 +276,6 @@ bool is_checkmate(const Board &board) {
         }
     }
 
-    // Check if the opponent's (black) king can move out of check
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             if (i == 0 && j == 0) {
@@ -271,9 +285,10 @@ bool is_checkmate(const Board &board) {
             int newX = kingX + i;
             int newY = kingY + j;
 
-            if (on_the_border(newX) && on_the_border(newY) && board.BOARD[newX][newY][0] == '-') {
+            if (on_the_border(newX) && on_the_border(newY) &&
+                (board.BOARD[newX][newY][0] == '-' || board.BOARD[newX][newY][0] == 'm')) {
                 Board newBoard = board;
-                newBoard.BOARD[newX][newY] = kingSymbol;
+                newBoard.BOARD[newX][newY] = "eg";
                 newBoard.BOARD[kingX][kingY] = "--";
 
                 if (!is_check(newBoard, 'e')) {
@@ -283,12 +298,11 @@ bool is_checkmate(const Board &board) {
         }
     }
 
-    // Check if any piece can capture the opponent's (black) king or block its escape
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             if (board.BOARD[i][j][0] == 'e') {
                 vector<vector<int>> moves = make_moves(board, i, j);
-                for (const auto &move : moves) {
+                for (const auto &move: moves) {
                     Board newBoard = board;
                     newBoard.BOARD[move[0]][move[1]] = board.BOARD[i][j];
                     newBoard.BOARD[i][j] = "--";
@@ -343,7 +357,8 @@ Board generate_moves(Board board, int num_moves, bool noCapture, bool noCheckmat
         }
 
         if (noCheckmate) {
-            if (is_checkmate(board)) {
+            if (is_checkmate(board) ||
+                is_check(board, (board.BOARD[chosen_move[0]][chosen_move[1]][0] == 'e' ? 'm' : 'e'))) {
                 i--;
                 continue;
             }
@@ -355,23 +370,20 @@ Board generate_moves(Board board, int num_moves, bool noCapture, bool noCheckmat
 int calculate_score(const Board &board, int from_x, int from_y, int to_x, int to_y) {
     int base_score = SYMBOL_SCORE[board.BOARD[from_x][from_y]];
 
-    // Добавляем бонус за срубление фигуры
     if (board.BOARD[to_x][to_y] != "--") {
         base_score += SYMBOL_SCORE[board.BOARD[to_x][to_y]];
     }
 
-    // Проверяем, является ли это шах
     Board temp_board = board;
     temp_board.BOARD[to_x][to_y] = temp_board.BOARD[from_x][from_y];
     temp_board.BOARD[from_x][from_y] = "--";
 
     if (is_check(temp_board, 'e')) {
-        base_score += 100;  // Бонус за шах
+        base_score += 100;
     }
 
-    // Проверяем, является ли это мат
     if (is_checkmate(temp_board)) {
-        base_score += 1000;  // Бонус за мат
+        base_score += 1000;
     }
 
     return base_score;
@@ -380,7 +392,6 @@ int calculate_score(const Board &board, int from_x, int from_y, int to_x, int to
 void find_best_moves_recursive(const Board &board, int num_moves, vector<Move> &current_moves,
                                vector<vector<Move>> &all_moves) {
     if (num_moves == 0) {
-        // Сохраняем текущую комбинацию ходов
         all_moves.push_back(current_moves);
         return;
     }
@@ -392,17 +403,14 @@ void find_best_moves_recursive(const Board &board, int num_moves, vector<Move> &
                 for (const auto &move: piece_moves) {
                     int score = calculate_score(board, x, y, move[0], move[1]);
 
-                    // Создаем копию доски для следующего хода
                     Board temp_board = board;
                     temp_board.BOARD[move[0]][move[1]] = temp_board.BOARD[x][y];
                     temp_board.BOARD[x][y] = "--";
 
                     current_moves.emplace_back(x, y, move[0], move[1], score);
 
-                    // Рекурсивно вызываем функцию для следующего хода
                     find_best_moves_recursive(temp_board, num_moves - 1, current_moves, all_moves);
 
-                    // Отменяем текущий ход для следующей итерации
                     current_moves.pop_back();
                 }
             }
@@ -417,17 +425,17 @@ int main() {
 
     cout << "Enter the number of figures for black pieces (pawns bishops knights rooks): " << endl;
     cin >> white_pawns >> white_bishops >> white_knights >> white_rooks;
-    if (white_pawns < 0 || white_pawns > 8 || white_bishops < 0 || white_bishops > 8 ||
-        white_knights < 0 || white_knights > 8 || white_rooks < 0 || white_rooks > 8) {
-        cout << "Error: Invalid number of figures for black pieces. Each type should be between 0 and 8." << endl;
+    if (white_pawns < 0 || white_pawns > 8 || white_bishops < 0 || white_bishops > 2 ||
+        white_knights < 0 || white_knights > 2 || white_rooks < 0 || white_rooks > 2) {
+        cout << "Error: Invalid number of figures for black pieces." << endl;
         return 1;
     }
 
     cout << "Enter the number of figures for white pieces (pawns bishops knights rooks): " << endl;
     cin >> black_pawns >> black_bishops >> black_knights >> black_rooks;
-    if (black_pawns < 0 || black_pawns > 8 || black_bishops < 0 || black_bishops > 8 ||
-        black_knights < 0 || black_knights > 8 || black_rooks < 0 || black_rooks > 8) {
-        cout << "Error: Invalid number of figures for white pieces. Each type should be between 0 and 8." << endl;
+    if (black_pawns < 0 || black_pawns > 8 || black_bishops < 0 || black_bishops > 2 ||
+        black_knights < 0 || black_knights > 2 || black_rooks < 0 || black_rooks > 2) {
+        cout << "Error: Invalid number of figures for white pieces." << endl;
         return 1;
     }
 
@@ -442,15 +450,15 @@ int main() {
     vector<vector<Move>> all_moves;
     find_best_moves_recursive(desk, 3, current_moves, all_moves);
 
-    // Сортируем вектор комбинаций ходов по суммарному баллу в убывающем порядке
     sort(all_moves.begin(), all_moves.end(),
          [](const vector<Move> &a, const vector<Move> &b) {
-             int score_a = accumulate(a.begin(), a.end(), 0, [](int sum, const Move &move) { return sum + move.score; });
-             int score_b = accumulate(b.begin(), b.end(), 0, [](int sum, const Move &move) { return sum + move.score; });
+             int score_a = accumulate(a.begin(), a.end(), 0,
+                                      [](int sum, const Move &move) { return sum + move.score; });
+             int score_b = accumulate(b.begin(), b.end(), 0,
+                                      [](int sum, const Move &move) { return sum + move.score; });
              return score_a > score_b;
          });
 
-// Выводим только три лучшие комбинации
     int num_combinations_to_show = min(3, static_cast<int>(all_moves.size()));
     for (int i = 0; i < num_combinations_to_show; ++i) {
         const auto &move_sequence = all_moves[i];
@@ -460,26 +468,18 @@ int main() {
                            [](int sum, const Move &move) { return sum + move.score; })
              << "):" << endl;
 
-        for (const auto &move : move_sequence) {
-            cout << "Move: " << desk.BOARD[move.from_x][move.from_y]
+        Board board_after_moves = desk;
+        for (const auto &move: move_sequence) {
+            cout << "Move: " << board_after_moves.BOARD[move.from_x][move.from_y]
                  << " from " << static_cast<char>('a' + move.from_y) << 8 - move.from_x
                  << " to " << static_cast<char>('a' + move.to_y) << 8 - move.to_x
                  << " (Score: " << move.score << ")" << endl;
-        }
 
-        cout << "Board after moves:" << endl;
-        Board board_after_moves = desk;
-        for (const auto &move : move_sequence) {
-            // Обновляем доску для следующего хода
-            board_after_moves.BOARD[move.to_x][move.to_y] = desk.BOARD[move.from_x][move.from_y];
+            board_after_moves.BOARD[move.to_x][move.to_y] = board_after_moves.BOARD[move.from_x][move.from_y];
             board_after_moves.BOARD[move.from_x][move.from_y] = "--";
+            show_board(board_after_moves);
         }
-
-        show_board(board_after_moves);
-
-        cout << endl;
     }
-
 
     return 0;
 }
