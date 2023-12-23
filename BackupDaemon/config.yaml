@@ -1,0 +1,3 @@
+sourceDirectory: /home/artur/Documents/system-programming-in-linux/BackupDaemon/dir
+backupDirectory: /home/artur/Documents/system-programming-in-linux/BackupDaemon/backup_dir
+frequency: minutely
