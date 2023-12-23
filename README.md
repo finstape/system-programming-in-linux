@@ -46,4 +46,4 @@ systemctl reload backupdaemon
 ```
 # System Audit
 
-Compile program with g++ main.cpp and then start program with ./a.out <PID>
+Compile program with `g++ main.cpp` and then start program with `./a.out PID`
