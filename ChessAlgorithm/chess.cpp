@@ -401,6 +401,7 @@ void find_best_moves_recursive(const Board &board, int num_moves, vector<Move> &
             if (board.BOARD[x][y][0] == 'm') {
                 vector<vector<int>> piece_moves = make_moves(board, x, y);
                 for (const auto &move: piece_moves) {
+                    //cout << move[0] << " " << move[1] << " " << x << " " << y << endl;
                     int score = calculate_score(board, x, y, move[0], move[1]);
 
                     Board temp_board = board;
@@ -441,7 +442,7 @@ int main() {
 
     Board desk(white_pawns, white_bishops, white_knights, white_rooks, black_pawns, black_bishops, black_knights,
                black_rooks);
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 20; i++) {
         desk = generate_moves(desk, 1, true, true);
     }
     show_board(desk);
@@ -449,7 +450,6 @@ int main() {
     vector<Move> current_moves;
     vector<vector<Move>> all_moves;
     find_best_moves_recursive(desk, 3, current_moves, all_moves);
-
     sort(all_moves.begin(), all_moves.end(),
          [](const vector<Move> &a, const vector<Move> &b) {
              int score_a = accumulate(a.begin(), a.end(), 0,
