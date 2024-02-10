@@ -24,6 +24,20 @@ map<string, int> SYMBOL_SCORE = {
         {"--", 0}
 };
 
+map<string, string> SYMBOL_DICT = {
+        {"ep", "♙"},
+        {"ek", "♘"},
+        {"eb", "♗"},
+        {"er", "♖"},
+        {"eg", "♔"},
+        {"mp", "♟"},
+        {"mk", "♞"},
+        {"mb", "♝"},
+        {"mr", "♜"},
+        {"mg", "♚"},
+        {"--", " "}
+};
+
 class Board {
 private:
     vector<vector<string>> BOARD;
@@ -45,8 +59,6 @@ public:
         placeFigures(white_rooks, 7, "mr");
         placeFigures(black_rooks, 0, "er");
     }
-
-    Board(const vector<vector<string>> &initial_board) : BOARD(initial_board) {}
 
     Board rotate_board() const {
         Board reversed_board = *this;
@@ -79,15 +91,19 @@ public:
     }
 
     friend ostream &operator<<(ostream &os, const Board &board) {
-        os << "a  b  c  d  e  f  g  h" << endl;
+        os << "a\t \tb\t \tc\t \td\t \te\t \tf\t \tg\t \th" << endl;
         for (int row_num = 0; row_num < 8; row_num++) {
             string row_str;
             for (const string &figure: board.BOARD[row_num]) {
-                row_str += (figure != "--") ? figure + "|" : "--|";
+                if (figure != "--") {
+                    row_str += SYMBOL_DICT[figure] + "\t|\t";
+                } else {
+                    row_str += "-\t|\t";
+                }
             }
             os << row_str << 8 - row_num << endl;
         }
-        os << "=========================" << endl;
+        os << "=================================" << endl;
         return os;
     }
 
@@ -459,7 +475,7 @@ int main() {
 
         Board board_after_moves = board;
         for (const auto &move: move_sequence) {
-            cout << "Move: " << board_after_moves[move.from_x][move.from_y]
+            cout << "Move: " << SYMBOL_DICT[board_after_moves[move.from_x][move.from_y]]
                  << " from " << static_cast<char>('a' + move.from_y) << 8 - move.from_x
                  << " to " << static_cast<char>('a' + move.to_y) << 8 - move.to_x
                  << " (Score: " << move.score << ")" << endl;
