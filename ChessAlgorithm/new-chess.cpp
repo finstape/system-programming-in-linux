@@ -30,6 +30,8 @@ public:
         placeFigures(black_rooks, 0, "er");
     }
 
+    Board(const vector<vector<string>> &initial_board) : BOARD(initial_board) {}
+
     Board rotate_board() const {
         Board reversed_board = *this;
         for (int i = 0; i < 8; i++) {
@@ -106,12 +108,15 @@ private:
     }
 };
 
+bool is_check(const Board &board, char player);
+
 bool on_the_border(int coord) {
     return 0 <= coord && coord <= 7;
 }
 
-vector<vector<int> > make_moves(const Board &board, int x, int y) {
+vector<vector<int> > make_moves(const Board &board, int x, int y, bool check_check) {
     vector<vector<int> > moves;
+    char ENEMY = (board[x][y][0] == 'm') ? 'e' : 'm';
 
     auto moves_on_line = [&](int add_x, int add_y) {
         int r_x = x + add_x;
@@ -121,24 +126,39 @@ vector<vector<int> > make_moves(const Board &board, int x, int y) {
             r_x += add_x;
             r_y += add_y;
         }
-        if (on_the_border(r_x) && on_the_border(r_y) && board[r_x][r_y][0] == 'e') {
+        if (on_the_border(r_x) && on_the_border(r_y) && board[r_x][r_y][0] == ENEMY) {
             moves.push_back({r_x, r_y});
         }
     };
 
     switch (board[x][y][1]) {
         case 'p':
-            if (x == 6 && board[x - 2][y][0] == '-' && board[x - 1][y][0] == '-') {
-                moves.push_back({x - 2, y});
-            }
-            if (on_the_border(x - 1) && board[x - 1][y][0] == '-') {
-                moves.push_back({x - 1, y});
-            }
-            if (on_the_border(x - 1) && on_the_border(y - 1) && board[x - 1][y - 1][0] == 'e') {
-                moves.push_back({x - 1, y - 1});
-            }
-            if (on_the_border(x - 1) && on_the_border(y + 1) && board[x - 1][y + 1][0] == 'e') {
-                moves.push_back({x - 1, y + 1});
+            if (board[x][y][0] == 'm') {
+                if (x == 6 && board[x - 2][y][0] == '-' && board[x - 1][y][0] == '-') {
+                    moves.push_back({x - 2, y});
+                }
+                if (on_the_border(x - 1) && board[x - 1][y][0] == '-') {
+                    moves.push_back({x - 1, y});
+                }
+                if (on_the_border(x - 1) && on_the_border(y - 1) && board[x - 1][y - 1][0] == ENEMY) {
+                    moves.push_back({x - 1, y - 1});
+                }
+                if (on_the_border(x - 1) && on_the_border(y + 1) && board[x - 1][y + 1][0] == ENEMY) {
+                    moves.push_back({x - 1, y + 1});
+                }
+            } else {
+                if (x == 1 && board[x + 2][y][0] == '-' && board[x + 1][y][0] == '-') {
+                    moves.push_back({x + 2, y});
+                }
+                if (on_the_border(x + 1) && board[x + 1][y][0] == '-') {
+                    moves.push_back({x + 1, y});
+                }
+                if (on_the_border(x + 1) && on_the_border(y + 1) && board[x + 1][y + 1][0] == ENEMY) {
+                    moves.push_back({x + 1, y + 1});
+                }
+                if (on_the_border(x + 1) && on_the_border(y - 1) && board[x + 1][y - 1][0] == ENEMY) {
+                    moves.push_back({x + 1, y - 1});
+                }
             }
             break;
         case 'b':
@@ -151,7 +171,7 @@ vector<vector<int> > make_moves(const Board &board, int x, int y) {
             for (int mk_x: {-2, -1, 1, 2}) {
                 for (int mk_y: {-2, -1, 1, 2}) {
                     if (abs(mk_x) != abs(mk_y) && on_the_border(x + mk_x) && on_the_border(y + mk_y) &&
-                        (board[x + mk_x][y + mk_y][0] == 'e' || board[x + mk_x][y + mk_y][0] == '-')) {
+                        (board[x + mk_x][y + mk_y][0] == ENEMY || board[x + mk_x][y + mk_y][0] == '-')) {
                         moves.push_back({x + mk_x, y + mk_y});
                     }
                 }
@@ -167,12 +187,13 @@ vector<vector<int> > make_moves(const Board &board, int x, int y) {
             for (int add_x = -1; add_x <= 1; add_x++) {
                 for (int add_y = -1; add_y <= 1; add_y++) {
                     if (abs(add_x) + abs(add_y) > 0 && on_the_border(x + add_x) && on_the_border(y + add_y) &&
-                        (board[x + add_x][y + add_y][0] == '-' || board[x + add_x][y + add_y][0] == 'e')) {
+                        (board[x + add_x][y + add_y][0] == '-' || board[x + add_x][y + add_y][0] == ENEMY)) {
 
                         bool valid_move = true;
+                        string ENEMY_G = string(1, ENEMY) + "g";
                         for (int i = 0; i < 8; i++) {
                             for (int j = 0; j < 8; j++) {
-                                if (board[i][j] == "eg") {
+                                if (board[i][j] == ENEMY_G) {
                                     if (abs(i - (x + add_x)) < 2 && abs(j - (y + add_y)) < 2) {
                                         valid_move = false;
                                         break;
@@ -193,14 +214,69 @@ vector<vector<int> > make_moves(const Board &board, int x, int y) {
             break;
     }
 
-    // проверка, что фигура не является спешанной - фильтр
+    /*cout << board[x][y] << " " << x << " " << y << endl;
+    for (const auto &move: moves) {
+        cout << move[0] << " " << move[1] << endl;
+    }*/
 
-    return moves;
+    if (!check_check) {
+        return moves;
+    }
+
+    // проверка, что фигура не является спешанной - фильтр
+    vector<vector<int> > filtered_moves;
+    for (const auto &move_coords: moves) {
+        Board temp_board = board;
+        temp_board[move_coords[0]][move_coords[1]] = temp_board[x][y];
+        temp_board[x][y] = "--";
+        //cout << temp_board;
+        //cout << endl << is_check(temp_board, board[x][y][0]) << endl << endl;
+        if (!is_check(temp_board, board[x][y][0])) {
+            filtered_moves.push_back(move_coords);
+        }
+    }
+    return filtered_moves;
+}
+
+bool is_check(const Board &board, char player) {
+    int kingX = -1, kingY = -1;
+    string kingSymbol = (player == 'e') ? "eg" : "mg";
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (board[i][j] == kingSymbol) {
+                kingX = i;
+                kingY = j;
+                break;
+            }
+        }
+        if (kingX != -1) {
+            break;
+        }
+    }
+    //cout << "my G: " << kingX << " " << kingY << endl;
+
+    char opponent = (player == 'e') ? 'm' : 'e';
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (board[i][j][0] == opponent) {
+                vector<vector<int>> moves = make_moves(board, i, j, false);
+                //cout << board[i][j] << " " << i << " " << j << endl;
+                for (const auto &move_coords: moves) {
+                    //cout << move_coords[0] << " " << move_coords[1] << endl;
+                    if (move_coords[0] == kingX && move_coords[1] == kingY) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 Board get_random_board(const Board &board) {
     Board temp_board = board;
-    for (int _ = 0; _ < 5; _++) {
+    for (int _ = 0; _ < 30; _++) {
         // получение всех фигур
         // получение всех доступных ходов
         // выбор случайного хода
@@ -222,17 +298,23 @@ Board get_random_board(const Board &board) {
 
         bool is_moved = false;
         for (auto figure_coords: figures) {
-            vector<vector<int> > moves = make_moves(temp_board, figure_coords[0], figure_coords[1]);
+            vector<vector<int> > moves = make_moves(temp_board, figure_coords[0], figure_coords[1], true);
             shuffle(moves.begin(), moves.end(), rng);
 
             for (auto move_coords: moves) {
-                // not check + checkmate +++++++++ нельзя рубить короля
-                //cout << move_coords[0] << " " << move_coords[1] << endl;
-                if ((move_coords[0] != 0 or temp_board[figure_coords[0]][figure_coords[1]][1] != 'p')) {
-                    is_moved = true;
-                    temp_board[move_coords[0]][move_coords[1]] = temp_board[figure_coords[0]][figure_coords[1]];
-                    temp_board[figure_coords[0]][figure_coords[1]] = "--";
-                    break;
+                if ((move_coords[0] != 0 or temp_board[figure_coords[0]][figure_coords[1]][1] != 'p') &&
+                    temp_board[move_coords[0]][move_coords[1]][0] != 'e') {
+
+                    Board TEMP_BOARD = temp_board;
+                    TEMP_BOARD[move_coords[0]][move_coords[1]] = TEMP_BOARD[figure_coords[0]][figure_coords[1]];
+                    TEMP_BOARD[figure_coords[0]][figure_coords[1]] = "--";
+
+                    if (!is_check(TEMP_BOARD, 'e') && !is_check(TEMP_BOARD, 'm')) {
+                        is_moved = true;
+                        temp_board[move_coords[0]][move_coords[1]] = temp_board[figure_coords[0]][figure_coords[1]];
+                        temp_board[figure_coords[0]][figure_coords[1]] = "--";
+                        break;
+                    }
                 }
             }
 
@@ -250,12 +332,42 @@ Board get_random_board(const Board &board) {
     return temp_board;
 }
 
+bool isValidBoard(const Board& board, int white_pawns, int white_bishops, int white_knights, int white_rooks,
+                  int black_pawns, int black_bishops, int black_knights, int black_rooks) {
+    // Считаем количество фигур каждого типа на доске
+    int count_white_pawns = 0, count_white_bishops = 0, count_white_knights = 0, count_white_rooks = 0;
+    int count_black_pawns = 0, count_black_bishops = 0, count_black_knights = 0, count_black_rooks = 0;
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            string square = board[i][j];
+            if (square == "mp") count_white_pawns++;
+            else if (square == "mb") count_white_bishops++;
+            else if (square == "mk") count_white_knights++;
+            else if (square == "mr") count_white_rooks++;
+            else if (square == "ep") count_black_pawns++;
+            else if (square == "eb") count_black_bishops++;
+            else if (square == "ek") count_black_knights++;
+            else if (square == "er") count_black_rooks++;
+        }
+    }
+
+    // Проверяем, совпадает ли количество фигур с заданными значениями
+    return count_white_pawns == white_pawns &&
+           count_white_bishops == white_bishops &&
+           count_white_knights == white_knights &&
+           count_white_rooks == white_rooks &&
+           count_black_pawns == black_pawns &&
+           count_black_bishops == black_bishops &&
+           count_black_knights == black_knights &&
+           count_black_rooks == black_rooks;
+}
+
 // превращение пешки на последней вертикали
-// рокировка?
 // шах
 // мат
 int main() {
-    int white_pawns, white_bishops, white_knights, white_rooks;
+    /*int white_pawns, white_bishops, white_knights, white_rooks;
     int black_pawns, black_bishops, black_knights, black_rooks;
 
     cout << "Enter the number of figures for white pieces (pawns bishops knights rooks): " << endl;
@@ -279,6 +391,51 @@ int main() {
     cout << board;
 
     board = get_random_board(board);
-    cout << endl << board;
+    cout << endl << board;*/
+    for (int white_pawns = 0; white_pawns <= 8; ++white_pawns) {
+        for (int white_bishops = 0; white_bishops <= 2; ++white_bishops) {
+            for (int white_knights = 0; white_knights <= 2; ++white_knights) {
+                for (int white_rooks = 0; white_rooks <= 2; ++white_rooks) {
+                    for (int black_pawns = 0; black_pawns <= 8; ++black_pawns) {
+                        for (int black_bishops = 0; black_bishops <= 2; ++black_bishops) {
+                            for (int black_knights = 0; black_knights <= 2; ++black_knights) {
+                                for (int black_rooks = 0; black_rooks <= 2; ++black_rooks) {
+                                    Board board(white_pawns, white_bishops, white_knights, white_rooks, black_pawns,
+                                                black_bishops, black_knights, black_rooks);
+                                    cout << "W: " << white_pawns << " " << white_bishops << " " << white_knights << " " << white_rooks;
+                                    cout << " B: " << black_pawns << " " << black_bishops << " " << black_knights << " " << black_rooks << endl;
+                                    for (int k = 0; k < 10; k++) {
+                                        Board tmp = get_random_board(board);
+                                        if (is_check(tmp, 'm') || is_check(tmp, 'e')) {
+                                            cout << "pizdec shax" << endl << tmp;
+                                            return -1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    cout << "GOOD!";
+    /*vector<vector<string>> initial_board = {
+            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 0
+            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 1
+            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 2
+            {"--", "--", "--", "--", "--", "eg", "--", "--"}, // 3
+            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 4
+            {"--", "--", "--", "--", "mg", "--", "--", "--"}, // 5
+            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 6
+            {"--", "--", "--", "--", "--", "--", "--", "--"}  // 7
+            //0     1     2     3     4     5     6     7
+    };
+    Board BOARD(initial_board);*/
+    /*for (const auto& move: make_moves(BOARD, 5, 4, true)) {
+        cout << "fff " << move[0] << " " << move[1] << endl;
+    }*/
+    /*cout << endl << is_check(BOARD, 'm');
+    cout << endl << is_check(BOARD, 'e');*/
     return 0;
 }
