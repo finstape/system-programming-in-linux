@@ -5,8 +5,24 @@
 #include <ctime>
 #include <algorithm>
 #include <random>
+#include <map>
 
 using namespace std;
+
+struct Move {
+    int from_x, from_y, to_x, to_y, score;
+
+    Move(int from_x, int from_y, int to_x, int to_y, int score) : from_x(from_x), from_y(from_y), to_x(to_x),
+                                                                  to_y(to_y), score(score) {}
+};
+
+map<string, int> SYMBOL_SCORE = {
+        {"ep", 1},
+        {"ek", 3},
+        {"eb", 3},
+        {"er", 5},
+        {"--", 0}
+};
 
 class Board {
 private:
@@ -214,23 +230,15 @@ vector<vector<int> > make_moves(const Board &board, int x, int y, bool check_che
             break;
     }
 
-    /*cout << board[x][y] << " " << x << " " << y << endl;
-    for (const auto &move: moves) {
-        cout << move[0] << " " << move[1] << endl;
-    }*/
-
     if (!check_check) {
         return moves;
     }
 
-    // проверка, что фигура не является спешанной - фильтр
     vector<vector<int> > filtered_moves;
     for (const auto &move_coords: moves) {
         Board temp_board = board;
         temp_board[move_coords[0]][move_coords[1]] = temp_board[x][y];
         temp_board[x][y] = "--";
-        //cout << temp_board;
-        //cout << endl << is_check(temp_board, board[x][y][0]) << endl << endl;
         if (!is_check(temp_board, board[x][y][0])) {
             filtered_moves.push_back(move_coords);
         }
@@ -254,16 +262,13 @@ bool is_check(const Board &board, char player) {
             break;
         }
     }
-    //cout << "my G: " << kingX << " " << kingY << endl;
 
     char opponent = (player == 'e') ? 'm' : 'e';
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             if (board[i][j][0] == opponent) {
                 vector<vector<int>> moves = make_moves(board, i, j, false);
-                //cout << board[i][j] << " " << i << " " << j << endl;
                 for (const auto &move_coords: moves) {
-                    //cout << move_coords[0] << " " << move_coords[1] << endl;
                     if (move_coords[0] == kingX && move_coords[1] == kingY) {
                         return true;
                     }
@@ -274,16 +279,29 @@ bool is_check(const Board &board, char player) {
     return false;
 }
 
+bool is_checkmate(const Board &board) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (board[i][j][0] == 'e') {
+                vector<vector<int>> moves = make_moves(board, i, j, false);
+                for (const auto &move: moves) {
+                    Board newBoard = board;
+                    newBoard[move[0]][move[1]] = board[i][j];
+                    newBoard[i][j] = "--";
+
+                    if (!is_check(newBoard, 'e')) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+
 Board get_random_board(const Board &board) {
     Board temp_board = board;
     for (int _ = 0; _ < 30; _++) {
-        // получение всех фигур
-        // получение всех доступных ходов
-        // выбор случайного хода
-        // проверка, что ход не приводит к шаху/мату, иначе, когда ходов больше нет return get_random_board(board)
-        // выполнение хода
-        // смена расстановки доски
-
         vector<vector<int> > figures;
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
@@ -332,42 +350,67 @@ Board get_random_board(const Board &board) {
     return temp_board;
 }
 
-bool isValidBoard(const Board& board, int white_pawns, int white_bishops, int white_knights, int white_rooks,
-                  int black_pawns, int black_bishops, int black_knights, int black_rooks) {
-    // Считаем количество фигур каждого типа на доске
-    int count_white_pawns = 0, count_white_bishops = 0, count_white_knights = 0, count_white_rooks = 0;
-    int count_black_pawns = 0, count_black_bishops = 0, count_black_knights = 0, count_black_rooks = 0;
+int calculate_score(const Board &board, int from_x, int from_y, int to_x, int to_y) {
+    int base_score = SYMBOL_SCORE[board[to_x][to_y]];
 
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            string square = board[i][j];
-            if (square == "mp") count_white_pawns++;
-            else if (square == "mb") count_white_bishops++;
-            else if (square == "mk") count_white_knights++;
-            else if (square == "mr") count_white_rooks++;
-            else if (square == "ep") count_black_pawns++;
-            else if (square == "eb") count_black_bishops++;
-            else if (square == "ek") count_black_knights++;
-            else if (square == "er") count_black_rooks++;
+    Board temp_board = board;
+    if (temp_board[from_x][from_y] == "mp" && to_x == 0) {
+        temp_board[to_x][to_y] = "mk";
+    } else {
+        temp_board[to_x][to_y] = temp_board[from_x][from_y];
+    }
+    temp_board[from_x][from_y] = "--";
+
+    if (is_check(temp_board, 'e')) {
+        if (is_checkmate(temp_board)) {
+            base_score = 1000;
+        } else {
+            base_score = 100;
         }
     }
 
-    // Проверяем, совпадает ли количество фигур с заданными значениями
-    return count_white_pawns == white_pawns &&
-           count_white_bishops == white_bishops &&
-           count_white_knights == white_knights &&
-           count_white_rooks == white_rooks &&
-           count_black_pawns == black_pawns &&
-           count_black_bishops == black_bishops &&
-           count_black_knights == black_knights &&
-           count_black_rooks == black_rooks;
+    return base_score;
 }
 
-// превращение пешки на последней вертикали
-// шах
-// мат
+void find_best_moves_recursive(const Board &board, int num_moves, vector<Move> &current_moves,
+                               vector<vector<Move>> &all_moves) {
+    if (num_moves == 0) {
+        all_moves.push_back(current_moves);
+        return;
+    }
+
+    for (int x = 0; x < 8; x++) {
+        for (int y = 0; y < 8; y++) {
+            if (board[x][y][0] == 'm') {
+                vector<vector<int>> piece_moves = make_moves(board, x, y, true);
+                for (const auto &move: piece_moves) {
+                    int score = calculate_score(board, x, y, move[0], move[1]);
+
+                    Board temp_board = board;
+                    if (temp_board[x][y] == "mp" && move[0] == 0) {
+                        temp_board[move[0]][move[1]] = "mk";
+                    } else {
+                        temp_board[move[0]][move[1]] = temp_board[x][y];
+                    }
+                    temp_board[x][y] = "--";
+
+                    current_moves.emplace_back(x, y, move[0], move[1], score);
+
+                    if (score >= 100) {
+                        find_best_moves_recursive(temp_board, 0, current_moves, all_moves);
+                    } else {
+                        find_best_moves_recursive(temp_board, num_moves - 1, current_moves, all_moves);
+                    }
+
+                    current_moves.pop_back();
+                }
+            }
+        }
+    }
+}
+
 int main() {
-    /*int white_pawns, white_bishops, white_knights, white_rooks;
+    int white_pawns, white_bishops, white_knights, white_rooks;
     int black_pawns, black_bishops, black_knights, black_rooks;
 
     cout << "Enter the number of figures for white pieces (pawns bishops knights rooks): " << endl;
@@ -388,54 +431,44 @@ int main() {
 
     Board board(white_pawns, white_bishops, white_knights, white_rooks, black_pawns, black_bishops, black_knights,
                 black_rooks);
-    cout << board;
-
     board = get_random_board(board);
-    cout << endl << board;*/
-    for (int white_pawns = 0; white_pawns <= 8; ++white_pawns) {
-        for (int white_bishops = 0; white_bishops <= 2; ++white_bishops) {
-            for (int white_knights = 0; white_knights <= 2; ++white_knights) {
-                for (int white_rooks = 0; white_rooks <= 2; ++white_rooks) {
-                    for (int black_pawns = 0; black_pawns <= 8; ++black_pawns) {
-                        for (int black_bishops = 0; black_bishops <= 2; ++black_bishops) {
-                            for (int black_knights = 0; black_knights <= 2; ++black_knights) {
-                                for (int black_rooks = 0; black_rooks <= 2; ++black_rooks) {
-                                    Board board(white_pawns, white_bishops, white_knights, white_rooks, black_pawns,
-                                                black_bishops, black_knights, black_rooks);
-                                    cout << "W: " << white_pawns << " " << white_bishops << " " << white_knights << " " << white_rooks;
-                                    cout << " B: " << black_pawns << " " << black_bishops << " " << black_knights << " " << black_rooks << endl;
-                                    for (int k = 0; k < 10; k++) {
-                                        Board tmp = get_random_board(board);
-                                        if (is_check(tmp, 'm') || is_check(tmp, 'e')) {
-                                            cout << "pizdec shax" << endl << tmp;
-                                            return -1;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    cout << board << endl;
+
+    vector<Move> current_moves;
+    vector<vector<Move>> all_moves;
+    find_best_moves_recursive(board, 3, current_moves, all_moves);
+    sort(all_moves.begin(), all_moves.end(),
+         [](const vector<Move> &a, const vector<Move> &b) {
+             int score_a = accumulate(a.begin(), a.end(), 0,
+                                      [](int sum, const Move &move) { return sum + move.score; });
+             int score_b = accumulate(b.begin(), b.end(), 0,
+                                      [](int sum, const Move &move) { return sum + move.score; });
+             if (score_a != score_b) {
+                 return score_a > score_b;
+             }
+             return a.size() < b.size();
+         });
+
+    for (int i = 0; i < min(3, static_cast<int>(all_moves.size())); ++i) {
+        const auto &move_sequence = all_moves[i];
+
+        cout << "Move sequence (Total Score: "
+             << accumulate(move_sequence.begin(), move_sequence.end(), 0,
+                           [](int sum, const Move &move) { return sum + move.score; })
+             << "):" << endl;
+
+        Board board_after_moves = board;
+        for (const auto &move: move_sequence) {
+            cout << "Move: " << board_after_moves[move.from_x][move.from_y]
+                 << " from " << static_cast<char>('a' + move.from_y) << 8 - move.from_x
+                 << " to " << static_cast<char>('a' + move.to_y) << 8 - move.to_x
+                 << " (Score: " << move.score << ")" << endl;
+
+            board_after_moves[move.to_x][move.to_y] = board_after_moves[move.from_x][move.from_y];
+            board_after_moves[move.from_x][move.from_y] = "--";
+            cout << board_after_moves;
         }
+        cout << endl;
     }
-    cout << "GOOD!";
-    /*vector<vector<string>> initial_board = {
-            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 0
-            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 1
-            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 2
-            {"--", "--", "--", "--", "--", "eg", "--", "--"}, // 3
-            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 4
-            {"--", "--", "--", "--", "mg", "--", "--", "--"}, // 5
-            {"--", "--", "--", "--", "--", "--", "--", "--"}, // 6
-            {"--", "--", "--", "--", "--", "--", "--", "--"}  // 7
-            //0     1     2     3     4     5     6     7
-    };
-    Board BOARD(initial_board);*/
-    /*for (const auto& move: make_moves(BOARD, 5, 4, true)) {
-        cout << "fff " << move[0] << " " << move[1] << endl;
-    }*/
-    /*cout << endl << is_check(BOARD, 'm');
-    cout << endl << is_check(BOARD, 'e');*/
     return 0;
 }
