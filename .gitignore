@@ -30,6 +30,6 @@
 *.exe
 *.out
 *.app
-/ChessAlgorithm/cmake-build-debug/
+/ChessAlgorithm/cmake-build-debug/*
 /ChessAlgorithm/CMakeLists.txt
-.idea
+.idea/*

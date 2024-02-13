@@ -1,4 +1,0 @@
-C:/Users/artur/CLionProjects/system-programming-in-linux/ChessAlgorithm/cmake-build-debug/CMakeFiles/chess.dir
-C:/Users/artur/CLionProjects/system-programming-in-linux/ChessAlgorithm/cmake-build-debug/CMakeFiles/new-chess.dir
-C:/Users/artur/CLionProjects/system-programming-in-linux/ChessAlgorithm/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/artur/CLionProjects/system-programming-in-linux/ChessAlgorithm/cmake-build-debug/CMakeFiles/rebuild_cache.dir
