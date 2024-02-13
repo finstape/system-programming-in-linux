@@ -31,5 +31,5 @@
 *.out
 *.app
 /ChessAlgorithm/cmake-build-debug/
-CMakeLists.txt
-*.idea
+/ChessAlgorithm/CMakeLists.txt
+.idea
