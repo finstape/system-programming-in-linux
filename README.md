@@ -1,6 +1,10 @@
 # system-programming-in-linux
 Materials for the practicum for "System programming in Linux" course at SpbU
 
+# Chess Algorithm
+
+Compile program with `g++ new-chess.cpp` and then start program with `./a.out`
+
 # BackupDaemon
 
 BackupDaemon is a C++ daemon for automated and regular backup of data from one directory to another.
@@ -44,3 +48,6 @@ systemctl [start/stop] backupdaemon
 systemctl [enable/disable] backupdaemon
 systemctl reload backupdaemon
 ```
+# System Audit
+
+Compile program with `g++ main.cpp` and then start program with `./a.out PID`
