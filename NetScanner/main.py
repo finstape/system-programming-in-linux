@@ -141,7 +141,7 @@ class Interface(ctk.CTk):
         self.services = parse_services(get_services())
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
-        self.title("IP Address Checker rApp")
+        self.title("IP Address Checker App")
         self.geometry("430x460")
         self.create_interface()
 
@@ -222,5 +222,6 @@ class Interface(ctk.CTk):
 
 # Main block to run the GUI application
 if __name__ == "__main__":
+    # 147.45.72.190
     gui = Interface()
     gui.mainloop()
