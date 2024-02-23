@@ -8,18 +8,23 @@ Make sure you have the following installed:
 
 - Python 3.x
 - `scapy`, `requests`, and `customtkinter` Python packages. You can install them using pip:
-
-`pip install scapy requests customtkinter`
-
+```
+pip install scapy requests customtkinter
+```
 ## Usage
 
 1. Clone the repository:
-`https://github.com/finstape/system-programming-in-linux/tree/main/NetScanner`
+```
+https://github.com/finstape/system-programming-in-linux/tree/main/NetScanner
+```
 2. Navigate to the project directory:
-`cd your_project`
+```
+cd your_project
+```
 3. Run the application using the following command:
-`sudo python3 main.py`
-
+```
+sudo python3 main.py`
+```
 Note: Running with `sudo` may be necessary to perform certain network operations.
 
 4. Enter the IP addresses and ports you want to scan in the respective textboxes. You can specify multiple IP addresses and ports, separated by new lines.
