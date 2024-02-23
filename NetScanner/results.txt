@@ -1,0 +1,14 @@
+Statistics:
+Total Hosts: 1
+Open Ports: 1
+Available servers: 1
+_________________________
+IP Address: 175.92.12.100
+ISP: FREEnet
+Country: Sweden
+Region: Stockholm County
+City: Stockholm
+MAC Address: N/A
+Available services: 1
+ssh
+_________________________
