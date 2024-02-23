@@ -23,7 +23,7 @@ cd your_project
 ```
 3. Run the application using the following command:
 ```
-sudo python3 main.py`
+sudo python3 main.py
 ```
 Note: Running with `sudo` may be necessary to perform certain network operations.
 
